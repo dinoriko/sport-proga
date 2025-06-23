@@ -1,31 +1,199 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.35130.168
-MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hrestuku", "hrestuku.vcxproj", "{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}"
-EndProject
-Global
-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Debug|x64.ActiveCfg = Debug|x64
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Debug|x64.Build.0 = Debug|x64
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Debug|x86.ActiveCfg = Debug|Win32
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Debug|x86.Build.0 = Debug|Win32
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Release|x64.ActiveCfg = Release|x64
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Release|x64.Build.0 = Release|x64
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Release|x86.ActiveCfg = Release|Win32
-		{2B4E836F-2AD5-438C-8E61-D1A70010CAA6}.Release|x86.Build.0 = Release|Win32
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {D53F087F-5ED7-4D2C-9998-CF3C0E9CA970}
-	EndGlobalSection
-EndGlobal
+#include <iostream>
+#include <vector>
+#include <limits>
+#include <algorithm>
+#include <cctype>
+
+using namespace std;
+
+char board[3][3];
+char playerSymbol, computerSymbol;
+
+void resetBoard() {
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            board[i][j] = ' ';
+}
+
+void printBoard() {
+    cout << "  1 2 3\n";
+    for (int i = 0; i < 3; i++) {
+        cout << char('A' + i) << " ";
+        for (int j = 0; j < 3; j++) {
+            cout << board[i][j];
+            if (j < 2) cout << "|";
+        }
+        cout << "\n";
+        if (i < 2) cout << "  -+-+-\n";
+    }
+}
+
+bool isMovesLeft() {
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            if (board[i][j] == ' ')
+                return true;
+    return false;
+}
+
+int evaluate() {
+    for (int row = 0; row < 3; row++) {
+        if (board[row][0] == board[row][1] &&
+            board[row][1] == board[row][2]) {
+            if (board[row][0] == computerSymbol) return +10;
+            else if (board[row][0] == playerSymbol) return -10;
+        }
+    }
+    for (int col = 0; col < 3; col++) {
+        if (board[0][col] == board[1][col] &&
+            board[1][col] == board[2][col]) {
+            if (board[0][col] == computerSymbol) return +10;
+            else if (board[0][col] == playerSymbol) return -10;
+        }
+    }
+    if (board[0][0] == board[1][1] &&
+        board[1][1] == board[2][2]) {
+        if (board[0][0] == computerSymbol) return +10;
+        else if (board[0][0] == playerSymbol) return -10;
+    }
+    if (board[0][2] == board[1][1] &&
+        board[1][1] == board[2][0]) {
+        if (board[0][2] == computerSymbol) return +10;
+        else if (board[0][2] == playerSymbol) return -10;
+    }
+    return 0;
+}
+
+int minimax(bool isMax) {
+    int score = evaluate();
+    if (score == 10 || score == -10) return score;
+    if (!isMovesLeft()) return 0;
+
+    if (isMax) {
+        int best = -1000;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                if (board[i][j] == ' ') {
+                    board[i][j] = computerSymbol;
+                    best = max(best, minimax(false));
+                    board[i][j] = ' ';
+                }
+        return best;
+    }
+    else {
+        int best = 1000;
+        for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+                if (board[i][j] == ' ') {
+                    board[i][j] = playerSymbol;
+                    best = min(best, minimax(true));
+                    board[i][j] = ' ';
+                }
+        return best;
+    }
+}
+
+pair<int, int> findBestMove() {
+    int bestVal = -1000;
+    pair<int, int> bestMove = { -1, -1 };
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            if (board[i][j] == ' ') {
+                board[i][j] = computerSymbol;
+                int moveVal = minimax(false);
+                board[i][j] = ' ';
+                if (moveVal > bestVal) {
+                    bestMove = { i, j };
+                    bestVal = moveVal;
+                }
+            }
+    return bestMove;
+}
+
+bool isValidMove(string move) {
+    if (move.length() != 2) return false;
+    char rowChar = toupper(move[0]);
+    char colChar = move[1];
+    if (rowChar < 'A' || rowChar > 'C') return false;
+    if (colChar < '1' || colChar > '3') return false;
+    int row = rowChar - 'A';
+    int col = colChar - '1';
+    return board[row][col] == ' ';
+}
+
+void playerTurn() {
+    string move;
+    while (true) {
+        cout << "Enter your move (e.g. A1): ";
+        cin >> move;
+        if (isValidMove(move)) {
+            int row = toupper(move[0]) - 'A';
+            int col = move[1] - '1';
+            board[row][col] = playerSymbol;
+            break;
+        }
+        else {
+            cout << "Invalid move. Try again.\n";
+        }
+    }
+}
+
+bool isGameOver() {
+    int score = evaluate();
+    if (score == 10) {
+        printBoard();
+        cout << "Computer wins.\n";
+        return true;
+    }
+    if (score == -10) {
+        printBoard();
+        cout << "You win.\n";
+        return true;
+    }
+    if (!isMovesLeft()) {
+        printBoard();
+        cout << "It's a draw.\n";
+        return true;
+    }
+    return false;
+}
+
+int main() {
+    while (true) {
+        resetBoard();
+        cout << "Choose your symbol (X or O): ";
+        cin >> playerSymbol;
+        playerSymbol = toupper(playerSymbol);
+        while (playerSymbol != 'X' && playerSymbol != 'O') {
+            cout << "Invalid symbol. Choose X or O: ";
+            cin >> playerSymbol;
+            playerSymbol = toupper(playerSymbol);
+        }
+        computerSymbol = (playerSymbol == 'X') ? 'O' : 'X';
+        bool playerTurnFirst = (playerSymbol == 'X');
+        while (true) {
+            printBoard();
+            if (playerTurnFirst) {
+                playerTurn();
+                if (isGameOver()) break;
+                pair<int, int> move = findBestMove();
+                board[move.first][move.second] = computerSymbol;
+                if (isGameOver()) break;
+            }
+            else {
+                pair<int, int> move = findBestMove();
+                board[move.first][move.second] = computerSymbol;
+                if (isGameOver()) break;
+                printBoard();
+                playerTurn();
+                if (isGameOver()) break;
+            }
+        }
+        string choice;
+        cout << "Play again? (yes/no): ";
+        cin >> choice;
+        for (auto& c : choice) c = tolower(c);
+        if (choice != "yes" && choice != "y") break;
+    }
+    return 0;
+}
